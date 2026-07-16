@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-const TITLE = "Direitos do Apostador — Responsabilidade Civil das Bets";
+const TITLE = "ByeBets — Responsabilidade Civil das Bets";
 const DESCRIPTION =
   "Como a lei brasileira protege quem perdeu dinheiro em apostas online: princípios, hipóteses de indenização e perguntas frequentes.";
 
@@ -11,6 +11,7 @@ export const Route = createFileRoute("/direitos")({
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
+      { property: "og:image", content: "/logo.png" },
       { property: "og:type", content: "article" },
     ],
   }),
