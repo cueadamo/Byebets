@@ -1,11 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { computeScore, type Answers } from "@/lib/scoring";
 
 export const Route = createFileRoute("/")({
   component: QuizPage,
 });
-
-type Answers = Record<string, string>;
 
 interface Option {
   value: string;
