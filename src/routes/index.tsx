@@ -505,9 +505,15 @@ function Landing({ onStart }: { onStart: () => void }) {
             >
               Iniciar avaliação gratuita →
             </button>
-            <div className="text-xs text-ink-faint">
-              Leva cerca de 3 minutos · 100% confidencial
-            </div>
+            <Link
+              to="/direitos"
+              className="rounded-full border-[1.5px] border-line bg-white px-7 py-3.5 text-[15px] font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint"
+            >
+              Conhecer meus direitos
+            </Link>
+          </div>
+          <div className="mt-4 text-xs text-ink-faint">
+            Leva cerca de 3 minutos · 100% confidencial
           </div>
 
           <div className="mt-16 grid gap-4 sm:grid-cols-3">
