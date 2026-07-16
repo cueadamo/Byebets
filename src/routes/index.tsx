@@ -555,31 +555,111 @@ function Landing({ onStart }: { onStart: () => void }) {
 }
 
 function ThankYou({ answers }: { answers: Answers }) {
-  const qualified =
-    answers.perdeu_dinheiro === "sim" &&
-    !["ate_5k"].includes(answers.valor_perdido ?? "") &&
-    (answers.extratos === "sim" || answers.extratos === "parcialmente" || answers.pix === "sim");
+  const score = useMemo(() => computeScore(answers), [answers]);
+
+  const tierStyles: Record<
+    typeof score.tier,
+    { badge: string; ring: string; icon: string; iconBg: string; barFrom: string; barTo: string }
+  > = {
+    prioritario: {
+      badge: "bg-navy-900 text-white",
+      ring: "ring-navy-900",
+      icon: "★",
+      iconBg: "bg-navy-900 text-gold",
+      barFrom: "from-gold",
+      barTo: "to-navy-900",
+    },
+    analise: {
+      badge: "bg-gold-deep text-white",
+      ring: "ring-gold-deep",
+      icon: "◆",
+      iconBg: "bg-gold-deep text-white",
+      barFrom: "from-tint-deep",
+      barTo: "to-gold-deep",
+    },
+    informativo: {
+      badge: "bg-tint-deep text-navy-900",
+      ring: "ring-navy-500",
+      icon: "i",
+      iconBg: "bg-navy-500 text-white",
+      barFrom: "from-tint-deep",
+      barTo: "to-navy-500",
+    },
+  };
+
+  const s = tierStyles[score.tier];
+  const pct = Math.min(100, Math.round((score.total / 150) * 100));
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
-      <div className="rounded-[22px] border border-line bg-white p-10 text-center shadow-[0_28px_64px_-24px_rgba(16,43,76,0.18)] sm:p-14">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-tint">
-          <span className="text-2xl text-emerald">✓</span>
-        </div>
-        <h1 className="mt-6 font-serifDisplay text-[34px] font-semibold text-ink sm:text-[42px]">
-          {qualified ? "Seu caso foi pré-qualificado" : "Recebemos sua avaliação"}
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-[16.5px] text-ink-soft">
-          {qualified
-            ? "Com base nas suas respostas, seu caso apresenta indícios relevantes para responsabilização civil da plataforma. Um advogado especializado entrará em contato em até 24 horas úteis."
-            : "Analisaremos as informações enviadas com atenção. Caso identifiquemos base para atuação jurídica, nossa equipe entrará em contato em breve."}
-        </p>
+    <main className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+      <div
+        className={`overflow-hidden rounded-[22px] border border-line bg-white shadow-[0_28px_64px_-24px_rgba(16,43,76,0.18)]`}
+      >
+        <div className="border-b border-line px-8 py-10 text-center sm:px-14 sm:py-12">
+          <div
+            className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full font-serifDisplay text-2xl font-semibold ring-4 ring-white ${s.iconBg}`}
+          >
+            {s.icon}
+          </div>
+          <div
+            className={`mt-5 inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${s.badge}`}
+          >
+            {score.tierLabel}
+          </div>
+          <h1 className="mt-4 font-serifDisplay text-[32px] font-semibold leading-tight text-ink sm:text-[40px]">
+            Sua pontuação: {score.total} pts
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-[16px] text-ink-soft">
+            {score.tierDescription}
+          </p>
 
-        <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-emerald-tint px-4 py-2 text-sm font-semibold text-emerald">
-          Confirmação enviada para {answers.email || "seu e-mail"}
+          <div className="mx-auto mt-8 max-w-md">
+            <div className="mb-2 flex justify-between text-xs font-semibold text-ink-faint">
+              <span>0</span>
+              <span>30</span>
+              <span>70</span>
+              <span>150</span>
+            </div>
+            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-tint-deep">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${s.barFrom} ${s.barTo} transition-all duration-1000`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between text-[11px] text-ink-faint">
+              <span>Orientação</span>
+              <span>Análise</span>
+              <span>Prioritário</span>
+            </div>
+          </div>
+
+          <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-tint px-4 py-2 text-sm font-semibold text-emerald">
+            Confirmação enviada para {answers.email || "seu e-mail"}
+          </div>
         </div>
 
-        <div className="mt-10 border-t border-line pt-8 text-left">
+        {score.breakdown.length > 0 && (
+          <div className="border-b border-line bg-tint px-8 py-8 sm:px-14">
+            <h3 className="font-serifDisplay text-lg font-semibold text-ink">
+              Como sua pontuação foi calculada
+            </h3>
+            <ul className="mt-4 divide-y divide-line">
+              {score.breakdown.map((item) => (
+                <li
+                  key={item.label}
+                  className="flex items-center justify-between gap-4 py-3 text-[14.5px]"
+                >
+                  <span className="text-ink">{item.label}</span>
+                  <span className="whitespace-nowrap rounded-full bg-white px-3 py-1 text-xs font-bold text-navy-900 ring-1 ring-line">
+                    +{item.points} pts
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="px-8 py-8 sm:px-14">
           <h3 className="font-serifDisplay text-lg font-semibold text-ink">
             Próximos passos
           </h3>
@@ -594,9 +674,28 @@ function ThankYou({ answers }: { answers: Answers }) {
             </li>
             <li className="flex gap-3">
               <span className="font-semibold text-navy-700">3.</span>
-              Aguarde nosso contato pelo WhatsApp ou telefone informado.
+              {score.tier === "prioritario"
+                ? "Aguarde nosso contato pelo WhatsApp ou telefone em até 24h úteis."
+                : score.tier === "analise"
+                  ? "Um especialista revisará seu caso e retornará em até 48h úteis."
+                  : "Consulte o material educativo abaixo e retorne quando reunir mais documentação."}
             </li>
           </ul>
+
+          <div className="mt-8 flex flex-wrap gap-3 border-t border-line pt-6">
+            <Link
+              to="/direitos"
+              className="rounded-full bg-navy-900 px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:-translate-y-0.5 hover:bg-navy-700"
+            >
+              Conhecer meus direitos em detalhe →
+            </Link>
+            <a
+              href="/direitos#casos"
+              className="rounded-full border-[1.5px] border-line bg-white px-6 py-3 text-sm font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint"
+            >
+              Ver hipóteses de indenização
+            </a>
+          </div>
         </div>
       </div>
     </main>
