@@ -32,10 +32,14 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* ByeBets Brand Colors */
   --color-navy-950: var(--navy-950);
   --color-navy-900: var(--navy-900);
   --color-navy-700: var(--navy-700);
   --color-navy-500: var(--navy-500);
+  --color-blue-electric: var(--blue-electric);
+  --color-blue-bright: var(--blue-bright);
+  --color-blue-light: var(--blue-light);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
@@ -47,26 +51,34 @@
   --color-emerald: var(--emerald);
   --color-emerald-tint: var(--emerald-tint);
 
-  --shadow-soft: 0 2px 8px rgba(16, 43, 76, 0.06);
-  --shadow-elevated: 0 12px 32px -12px rgba(16, 43, 76, 0.22);
-  --shadow-plush: 0 28px 64px -24px rgba(16, 43, 76, 0.32);
+  --shadow-soft: 0 2px 8px rgba(13, 27, 62, 0.08);
+  --shadow-elevated: 0 12px 32px -12px rgba(13, 27, 62, 0.28);
+  --shadow-plush: 0 28px 64px -24px rgba(13, 27, 62, 0.36);
+  --shadow-blue: 0 8px 32px -8px rgba(41, 121, 255, 0.35);
 }
 
 :root {
   --radius: 14px;
 
-  --navy-950: oklch(0.24 0.06 255);
-  --navy-900: oklch(0.30 0.07 255);
-  --navy-700: oklch(0.42 0.09 255);
-  --navy-500: oklch(0.55 0.09 255);
-  --ink: oklch(0.26 0.04 260);
-  --ink-soft: oklch(0.48 0.02 260);
-  --ink-faint: oklch(0.62 0.02 260);
-  --tint: oklch(0.975 0.007 250);
-  --tint-deep: oklch(0.95 0.012 250);
-  --line: oklch(0.91 0.012 255);
-  --gold: oklch(0.75 0.12 82);
-  --gold-deep: oklch(0.62 0.12 75);
+  /* ByeBets Navy scale — extraído do logo */
+  --navy-950: oklch(0.18 0.07 264);   /* #0D1B3E — arco e texto "Bye" */
+  --navy-900: oklch(0.24 0.08 264);   /* #132A5C */
+  --navy-700: oklch(0.34 0.10 255);   /* #1A3A7C */
+  --navy-500: oklch(0.48 0.12 252);   /* azul médio */
+
+  /* Azul elétrico ByeBets — cor de "Bets" e glow da porta */
+  --blue-electric: oklch(0.55 0.22 258);  /* #2979FF */
+  --blue-bright:   oklch(0.65 0.20 252);  /* #4A90E2 */
+  --blue-light:    oklch(0.75 0.14 240);  /* #64B5F6 — gradiente porta */
+
+  --ink: oklch(0.18 0.07 264);
+  --ink-soft: oklch(0.40 0.06 258);
+  --ink-faint: oklch(0.56 0.04 258);
+  --tint: oklch(0.97 0.010 245);
+  --tint-deep: oklch(0.93 0.018 248);
+  --line: oklch(0.88 0.016 250);
+  --gold: oklch(0.65 0.20 258);          /* reutilizando o azul elétrico como destaque */
+  --gold-deep: oklch(0.55 0.22 258);
   --emerald: oklch(0.5 0.09 165);
   --emerald-tint: oklch(0.95 0.03 165);
 
@@ -76,7 +88,7 @@
   --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--ink);
-  --primary: var(--navy-900);
+  --primary: var(--blue-electric);
   --primary-foreground: oklch(1 0 0);
   --secondary: var(--tint);
   --secondary-foreground: var(--navy-900);
@@ -88,7 +100,7 @@
   --destructive-foreground: oklch(1 0 0);
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--navy-500);
+  --ring: var(--blue-electric);
 }
 
 @layer base {
@@ -110,7 +122,7 @@
   }
 
   ::selection {
-    background: var(--gold);
+    background: var(--blue-electric);
     color: #fff;
   }
 

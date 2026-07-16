@@ -145,22 +145,18 @@ const FAQ = [
 function DireitosPage() {
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.88)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <Link to="/" className="flex items-center gap-3 no-underline">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-950 font-serifDisplay text-sm font-semibold text-white ring-2 ring-gold ring-offset-2 ring-offset-white">
-              DA
-            </div>
-            <div className="font-serifDisplay text-[15px] leading-tight">
-              <div className="font-semibold text-navy-950">Direitos do Apostador</div>
-              <div className="text-xs font-medium text-ink-soft">
-                Responsabilidade civil das bets
-              </div>
-            </div>
+      <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.92)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <Link to="/" className="flex items-center no-underline">
+            <img
+              src="/logo.png"
+              alt="ByeBets — Escolhas hoje. Liberdade sempre."
+              className="h-14 w-auto"
+            />
           </Link>
           <Link
             to="/"
-            className="rounded-full bg-navy-900 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all hover:-translate-y-0.5 hover:bg-navy-700"
+            className="rounded-full bg-blue-electric px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700"
           >
             Avaliar meu caso
           </Link>
@@ -170,7 +166,7 @@ function DireitosPage() {
       <section className="relative bg-gradient-to-b from-tint to-white px-6 pb-16 pt-16 sm:pb-20 sm:pt-24">
         <div className="mx-auto max-w-4xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-tint-deep px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-navy-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-electric" />
             Apostas esportivas e cassino online
           </span>
           <h1 className="mt-6 font-serifDisplay text-[38px] font-semibold leading-[1.1] text-ink sm:text-[54px]">

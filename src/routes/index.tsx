@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { computeScore, type Answers } from "@/lib/scoring";
+import { submitQuizFn } from "@/lib/send-email.server";
 
 export const Route = createFileRoute("/")({
   component: QuizPage,
@@ -289,6 +290,8 @@ function QuizPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const step = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -306,12 +309,29 @@ function QuizPage() {
   const setAnswer = (id: string, value: string) =>
     setAnswers((prev) => ({ ...prev, [id]: value }));
 
-  const goNext = () => {
-    if (!canAdvance) return;
+  const goNext = async () => {
+    if (!canAdvance || submitting) return;
     if (stepIndex < totalSteps - 1) {
       setStepIndex((i) => i + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
+      setSubmitting(true);
+      setSubmitError(null);
+      try {
+        const score = computeScore(answers);
+        const res = await submitQuizFn({
+          data: { answers, score: score.total, tier: score.tier },
+        });
+        if (res && !res.ok) {
+          throw new Error(res.error || "Erro no envio do e-mail");
+        }
+      } catch (err) {
+        console.error("Erro ao enviar:", err);
+        setSubmitError(err instanceof Error ? err.message : "Não foi possível enviar. Tente novamente.");
+        setSubmitting(false);
+        return;
+      }
+      setSubmitting(false);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -326,20 +346,17 @@ function QuizPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.88)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-950 font-serifDisplay text-sm font-semibold text-white ring-2 ring-gold ring-offset-2 ring-offset-white">
-              DA
-            </div>
-            <div className="font-serifDisplay text-[15px] leading-tight">
-              <div className="font-semibold text-navy-950">Direitos do Apostador</div>
-              <div className="text-xs font-medium text-ink-soft">
-                Avaliação Jurídica Gratuita
-              </div>
-            </div>
-          </div>
-          <div className="hidden text-xs font-semibold uppercase tracking-wider text-ink-soft sm:block">
+      <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.92)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <a href="/" className="flex items-center no-underline">
+            <img
+              src="/logo.png"
+              alt="ByeBets — Escolhas hoje. Liberdade sempre."
+              className="h-14 w-auto"
+            />
+          </a>
+          <div className="hidden text-xs font-semibold uppercase tracking-wider text-ink-soft sm:flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-electric" />
             Sigilo garantido · LGPD
           </div>
         </div>
@@ -353,14 +370,14 @@ function QuizPage() {
         <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
           <div className="mb-8">
             <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider">
-              <span className="text-gold-deep">{step.eyebrow}</span>
+              <span className="text-blue-electric">{step.eyebrow}</span>
               <span className="text-ink-faint">
                 {Math.round(progress)}% concluído
               </span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-tint-deep">
               <div
-                className="h-full rounded-full bg-navy-900 transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-navy-900 to-blue-electric transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -385,20 +402,33 @@ function QuizPage() {
               ))}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+            {submitError && (
+              <p className="mt-4 text-center text-sm font-medium text-destructive">
+                {submitError}
+              </p>
+            )}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
               <button
                 onClick={goBack}
-                disabled={stepIndex === 0}
+                disabled={stepIndex === 0 || submitting}
                 className="rounded-full border-[1.5px] border-line bg-transparent px-6 py-3 text-sm font-semibold text-navy-900 transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-line disabled:hover:bg-transparent"
               >
                 ← Voltar
               </button>
               <button
                 onClick={goNext}
-                disabled={!canAdvance}
-                className="rounded-full border-[1.5px] border-transparent bg-navy-900 px-7 py-3 text-sm font-semibold text-white shadow-[var(--shadow-soft)] transition-all hover:-translate-y-0.5 hover:bg-navy-700 hover:shadow-[var(--shadow-elevated)] disabled:cursor-not-allowed disabled:bg-ink-faint disabled:opacity-70 disabled:hover:translate-y-0"
+                disabled={!canAdvance || submitting}
+                className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-transparent bg-blue-electric px-7 py-3 text-sm font-semibold text-white shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700 hover:shadow-[var(--shadow-elevated)] disabled:cursor-not-allowed disabled:bg-ink-faint disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                {stepIndex === totalSteps - 1 ? "Enviar avaliação" : "Continuar →"}
+                {submitting ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Enviando...
+                  </>
+                ) : stepIndex === totalSteps - 1 ? "Enviar avaliação" : "Continuar →"}
               </button>
             </div>
           </div>
@@ -482,9 +512,11 @@ function Landing({ onStart }: { onStart: () => void }) {
   return (
     <main>
       <section className="relative overflow-hidden bg-gradient-to-b from-tint to-white pb-20 pt-16 sm:pt-24">
+        {/* Decorative glow matching logo electric blue */}
+        <div className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-electric opacity-[0.06] blur-3xl" />
         <div className="mx-auto max-w-4xl px-6 text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-tint-deep px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-navy-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-electric" />
             Avaliação gratuita e sigilosa
           </span>
           <h1 className="mt-6 font-serifDisplay text-[40px] font-semibold leading-[1.08] tracking-tight text-ink sm:text-[58px]">
@@ -501,13 +533,13 @@ function Landing({ onStart }: { onStart: () => void }) {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={onStart}
-              className="rounded-full bg-navy-900 px-8 py-4 text-[15.5px] font-semibold text-white shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5 hover:bg-navy-700"
+              className="rounded-full bg-blue-electric px-8 py-4 text-[15.5px] font-semibold text-white shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700"
             >
               Iniciar avaliação gratuita →
             </button>
             <Link
               to="/direitos"
-              className="rounded-full border-[1.5px] border-line bg-white px-7 py-3.5 text-[15px] font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint"
+              className="rounded-full border-[1.5px] border-line bg-white px-7 py-3.5 text-[15px] font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-blue-electric hover:bg-tint"
             >
               Conhecer meus direitos
             </Link>
@@ -685,13 +717,13 @@ function ThankYou({ answers }: { answers: Answers }) {
           <div className="mt-8 flex flex-wrap gap-3 border-t border-line pt-6">
             <Link
               to="/direitos"
-              className="rounded-full bg-navy-900 px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:-translate-y-0.5 hover:bg-navy-700"
+              className="rounded-full bg-blue-electric px-6 py-3 text-sm font-semibold text-white no-underline shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700"
             >
               Conhecer meus direitos em detalhe →
             </Link>
             <a
               href="/direitos#casos"
-              className="rounded-full border-[1.5px] border-line bg-white px-6 py-3 text-sm font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint"
+              className="rounded-full border-[1.5px] border-line bg-white px-6 py-3 text-sm font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-blue-electric hover:bg-tint"
             >
               Ver hipóteses de indenização
             </a>
