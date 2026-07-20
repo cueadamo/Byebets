@@ -11,7 +11,7 @@ export const Route = createFileRoute("/direitos")({
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: "/logo.png" },
+      { property: "og:image", content: "/og-image.png" },
       { property: "og:type", content: "article" },
     ],
   }),
