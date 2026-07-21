@@ -357,7 +357,7 @@ function QuizPage() {
           </a>
           <div className="hidden text-xs font-semibold uppercase tracking-wider text-ink-soft sm:flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-electric" />
-            Sigilo garantido · LGPD
+            Sigilo garantido · LGPD (Lei nº 13.709/2018)
           </div>
         </div>
       </header>
