@@ -179,7 +179,7 @@ function DireitosPage() {
           <p className="mt-6 max-w-2xl text-[18px] text-ink-soft sm:text-[19px]">
             A lei brasileira não deixa o apostador desamparado. As casas de apostas têm
             deveres legais de proteção, prevenção e transparência — e quando falham em
-            cumpri-los, podem ser condenadas a devolver valores e a indenizar danos.
+            cumpri-los, podem ser condenadas à devolução dos valores e à reparação dos prejuízos causados.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
