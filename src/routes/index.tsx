@@ -440,11 +440,13 @@ function QuizPage() {
       )}
 
       <footer className="border-t border-line bg-tint px-6 py-10">
-        <div className="mx-auto max-w-6xl text-[13px] leading-relaxed text-ink-soft">
-          <strong className="font-semibold text-ink">Aviso legal:</strong> Este
-          formulário não substitui consulta médica ou avaliação clínica. A responsabilidade
-          civil das plataformas de apostas é analisada caso a caso à luz do CDC, do Código
-          Civil e da Lei nº 14.790/2023. Sigilo profissional preservado.
+        <div className="mx-auto max-w-6xl text-[13px] leading-relaxed text-ink-soft space-y-3">
+          <p>
+            <strong className="font-semibold text-ink">Aviso legal:</strong> As informações disponibilizadas neste site possuem caráter exclusivamente informativo e educacional, não constituindo consulta jurídica individualizada, orientação profissional específica nem criação de relação advogado-cliente. A análise de eventuais responsabilidades civis de plataformas de apostas depende das circunstâncias concretas de cada caso e pode envolver a legislação aplicável, incluindo o Código de Defesa do Consumidor, o Código Civil e a Lei nº 14.790/2023, que regula as apostas online no Brasil.
+          </p>
+          <p>
+            Este conteúdo foi elaborado para auxiliar a compreensão geral do tema e não substitui a avaliação técnica de um caso específico.
+          </p>
         </div>
       </footer>
     </div>
