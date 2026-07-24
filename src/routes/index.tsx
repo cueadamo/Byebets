@@ -5,7 +5,7 @@ import { submitQuizFn } from "@/lib/send-email.server";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
-    start: search.start === "1" || search.start === 1,
+    start: Boolean(search.start) && search.start !== "false" && search.start !== "0",
   }),
   component: QuizPage,
 });
