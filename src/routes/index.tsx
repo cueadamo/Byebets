@@ -33,7 +33,7 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    eyebrow: "Etapa 1 de 7",
+    eyebrow: "Etapa 1 de 6",
     title: "Identificação do problema",
     description:
       "Vamos começar entendendo o contexto das suas perdas com apostas online ou cassino.",
@@ -79,7 +79,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    eyebrow: "Etapa 2 de 7",
+    eyebrow: "Etapa 2 de 6",
     title: "Indícios de ludopatia",
     description:
       "Esta parte é essencial para o encaminhamento adequado e não substitui avaliação clínica.",
@@ -143,7 +143,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    eyebrow: "Etapa 3 de 7",
+    eyebrow: "Etapa 3 de 6",
     title: "Histórico médico",
     questions: [
       {
@@ -177,7 +177,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    eyebrow: "Etapa 4 de 7",
+    eyebrow: "Etapa 4 de 6",
     title: "Provas e documentação",
     description: "Quanto mais documentos, mais forte é o caso.",
     questions: [
@@ -221,7 +221,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    eyebrow: "Etapa 5 de 7",
+    eyebrow: "Etapa 5 de 6",
     title: "Situação atual",
     questions: [
       {
@@ -255,7 +255,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    eyebrow: "Etapa 6 de 7",
+    eyebrow: "Etapa 6 de 6",
     title: "Seu objetivo",
     questions: [
       {
@@ -270,20 +270,6 @@ const STEPS: Step[] = [
           { value: "ambos", label: "Ambos" },
         ],
       },
-    ],
-  },
-  {
-    eyebrow: "Etapa 7 de 7",
-    title: "Contato",
-    description:
-      "Preencha seus dados para receber a análise personalizada do seu caso.",
-    questions: [
-      { id: "nome", label: "Nome completo", type: "text", placeholder: "Seu nome" },
-      { id: "telefone", label: "Telefone", type: "text", placeholder: "(11) 99999-9999" },
-      { id: "whatsapp", label: "WhatsApp", type: "text", placeholder: "(11) 99999-9999" },
-      { id: "cidade", label: "Cidade", type: "text", placeholder: "Sua cidade" },
-      { id: "estado", label: "Estado", type: "text", placeholder: "UF" },
-      { id: "email", label: "E-mail", type: "text", placeholder: "voce@email.com" },
     ],
   },
 ];
@@ -313,29 +299,12 @@ function QuizPage() {
   const setAnswer = (id: string, value: string) =>
     setAnswers((prev) => ({ ...prev, [id]: value }));
 
-  const goNext = async () => {
+  const goNext = () => {
     if (!canAdvance || submitting) return;
     if (stepIndex < totalSteps - 1) {
       setStepIndex((i) => i + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      setSubmitting(true);
-      setSubmitError(null);
-      try {
-        const score = computeScore(answers);
-        const res = await submitQuizFn({
-          data: { answers, score: score.total, tier: score.tier },
-        });
-        if (res && !res.ok) {
-          throw new Error(res.error || "Erro no envio do e-mail");
-        }
-      } catch (err) {
-        console.error("Erro ao enviar:", err);
-        setSubmitError(err instanceof Error ? err.message : "Não foi possível enviar. Tente novamente.");
-        setSubmitting(false);
-        return;
-      }
-      setSubmitting(false);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -532,7 +501,7 @@ function Landing({ onStart }: { onStart: () => void }) {
             </em>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-[18px] text-ink-soft sm:text-[19px]">
-            Responda a 7 etapas rápidas para descobrir se o seu caso tem base jurídica para
+            Responda ao questionário para descobrir se o seu caso tem base jurídica para
             responsabilizar civilmente a plataforma e buscar a reparação dos valores perdidos.
           </p>
 
@@ -594,6 +563,42 @@ function Landing({ onStart }: { onStart: () => void }) {
 
 function ThankYou({ answers }: { answers: Answers }) {
   const score = useMemo(() => computeScore(answers), [answers]);
+  const [contactData, setContactData] = useState({
+    nome: answers.nome || "",
+    telefone: answers.telefone || "",
+    cidade: answers.cidade || "",
+    estado: answers.estado || "",
+    email: answers.email || "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmitContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting || contactSubmitted) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const mergedAnswers = { ...answers, ...contactData };
+
+    try {
+      const res = await submitQuizFn({
+        data: { answers: mergedAnswers, score: score.total, tier: score.tier },
+      });
+      if (res && !res.ok) {
+        throw new Error(res.error || "Erro no envio dos dados");
+      }
+      setContactSubmitted(true);
+    } catch (err) {
+      console.error("Erro no envio:", err);
+      setSubmitError(
+        err instanceof Error ? err.message : "Não foi possível enviar. Tente novamente."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const tierStyles: Record<
     typeof score.tier,
@@ -629,10 +634,9 @@ function ThankYou({ answers }: { answers: Answers }) {
   const pct = Math.min(100, Math.round((score.total / 150) * 100));
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
-      <div
-        className={`overflow-hidden rounded-[22px] border border-line bg-white shadow-[0_28px_64px_-24px_rgba(16,43,76,0.18)]`}
-      >
+    <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+      <div className="overflow-hidden rounded-[22px] border border-line bg-white shadow-[0_28px_64px_-24px_rgba(16,43,76,0.18)]">
+        {/* Header with Score */}
         <div className="border-b border-line px-8 py-10 text-center sm:px-14 sm:py-12">
           <div
             className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full font-serifDisplay text-2xl font-semibold ring-4 ring-white ${s.iconBg}`}
@@ -670,12 +674,9 @@ function ThankYou({ answers }: { answers: Answers }) {
               <span>Prioritário</span>
             </div>
           </div>
-
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-tint px-4 py-2 text-sm font-semibold text-emerald">
-            Confirmação enviada para {answers.email || "seu e-mail"}
-          </div>
         </div>
 
+        {/* Score Breakdown */}
         {score.breakdown.length > 0 && (
           <div className="border-b border-line bg-tint px-8 py-8 sm:px-14">
             <h3 className="font-serifDisplay text-lg font-semibold text-ink">
@@ -697,6 +698,128 @@ function ThankYou({ answers }: { answers: Answers }) {
           </div>
         )}
 
+        {/* Contact Form Section */}
+        <div className="border-b border-line px-8 py-10 sm:px-14">
+          <div className="rounded-[16px] border border-line bg-tint-deep/50 p-6 sm:p-8">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-electric">
+              <span className="h-2 w-2 rounded-full bg-blue-electric" />
+              Solicitar avaliação do seu caso
+            </div>
+            <h3 className="mt-2 font-serifDisplay text-2xl font-semibold text-ink">
+              Quer que um especialista analise o seu caso?
+            </h3>
+            <p className="mt-2 text-[15px] text-ink-soft">
+              Se desejar um atendimento personalizado e sigiloso sobre o seu resultado, preencha seus dados abaixo para entrarmos em contato.
+            </p>
+
+            {contactSubmitted ? (
+              <div className="mt-6 rounded-[12px] bg-emerald-tint p-5 text-emerald">
+                <div className="flex items-center gap-2 font-semibold">
+                  <span>✓</span> Dados enviados com sucesso!
+                </div>
+                <p className="mt-1 text-xs leading-relaxed opacity-90">
+                  Sua pontuação ({score.total} pts) e respostas foram registradas. Nossa equipe jurídica entrará em contato em breve através do telefone/WhatsApp fornecido.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitContact} className="mt-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy-700">
+                    Nome completo
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Seu nome"
+                    value={contactData.nome}
+                    onChange={(e) => setContactData({ ...contactData, nome: e.target.value })}
+                    className="mt-1.5 w-full rounded-[8px] border-[1.5px] border-line bg-white px-4 py-2.5 text-[14.5px] text-ink transition-colors focus:border-navy-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-navy-700">
+                      Telefone / WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="(11) 99999-9999"
+                      value={contactData.telefone}
+                      onChange={(e) => setContactData({ ...contactData, telefone: e.target.value })}
+                      className="mt-1.5 w-full rounded-[8px] border-[1.5px] border-line bg-white px-4 py-2.5 text-[14.5px] text-ink transition-colors focus:border-navy-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-navy-700">
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="voce@email.com"
+                      value={contactData.email}
+                      onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
+                      className="mt-1.5 w-full rounded-[8px] border-[1.5px] border-line bg-white px-4 py-2.5 text-[14.5px] text-ink transition-colors focus:border-navy-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-navy-700">
+                      Cidade
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Sua cidade"
+                      value={contactData.cidade}
+                      onChange={(e) => setContactData({ ...contactData, cidade: e.target.value })}
+                      className="mt-1.5 w-full rounded-[8px] border-[1.5px] border-line bg-white px-4 py-2.5 text-[14.5px] text-ink transition-colors focus:border-navy-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-navy-700">
+                      Estado (UF)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="UF"
+                      value={contactData.estado}
+                      onChange={(e) => setContactData({ ...contactData, estado: e.target.value })}
+                      className="mt-1.5 w-full rounded-[8px] border-[1.5px] border-line bg-white px-4 py-2.5 text-[14.5px] text-ink transition-colors focus:border-navy-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {submitError && (
+                  <p className="text-xs font-medium text-destructive">{submitError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-electric px-6 py-3.5 text-sm font-semibold text-white shadow-[var(--shadow-blue)] transition-all hover:bg-navy-700 disabled:opacity-60"
+                >
+                  {submitting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Enviando dados...
+                    </>
+                  ) : (
+                    "Enviar dados para avaliação →"
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* Next Steps & Links */}
         <div className="px-8 py-8 sm:px-14">
           <h3 className="font-serifDisplay text-lg font-semibold text-ink">
             Próximos passos
@@ -713,9 +836,9 @@ function ThankYou({ answers }: { answers: Answers }) {
             <li className="flex gap-3">
               <span className="font-semibold text-navy-700">3.</span>
               {score.tier === "prioritario"
-                ? "Aguarde nosso contato pelo WhatsApp ou telefone em até 24h úteis."
+                ? "Após enviar seus dados, aguarde nosso contato pelo WhatsApp em até 24h úteis."
                 : score.tier === "analise"
-                  ? "Um especialista revisará seu caso e retornará em até 48h úteis."
+                  ? "Após enviar seus dados, um especialista revisará seu caso e retornará em até 48h úteis."
                   : "Consulte o material educativo abaixo e retorne quando reunir mais documentação."}
             </li>
           </ul>
