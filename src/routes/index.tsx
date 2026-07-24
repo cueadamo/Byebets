@@ -1,9 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { computeScore, type Answers } from "@/lib/scoring";
 import { submitQuizFn } from "@/lib/send-email.server";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    start: search.start === "1" || search.start === 1,
+  }),
   component: QuizPage,
 });
 
@@ -286,7 +289,8 @@ const STEPS: Step[] = [
 ];
 
 function QuizPage() {
-  const [started, setStarted] = useState(false);
+  const { start } = useSearch({ from: Route.id });
+  const [started, setStarted] = useState(() => !!start);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);

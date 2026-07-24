@@ -157,6 +157,7 @@ function DireitosPage() {
           </Link>
           <Link
             to="/"
+            search={{ start: true }}
             className="rounded-full bg-blue-electric px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700"
           >
             Avaliar meu caso
@@ -190,6 +191,7 @@ function DireitosPage() {
             </a>
             <Link
               to="/"
+              search={{ start: true }}
               className="rounded-full border-[1.5px] border-line bg-transparent px-7 py-3.5 text-sm font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint"
             >
               Fazer avaliação gratuita
@@ -248,14 +250,14 @@ function DireitosPage() {
             </p>
           </div>
           <div className="mt-10 space-y-3">
-            {CASES.map((c) => (
+            {CASES.map((c, index) => (
               <details
                 key={c.title}
                 className="group overflow-hidden rounded-[14px] border border-line bg-white transition-all open:border-navy-500 open:shadow-[var(--shadow-elevated)]"
               >
                 <summary className="flex cursor-pointer list-none items-center gap-4 px-6 py-5 [&::-webkit-details-marker]:hidden">
-                  <span className="whitespace-nowrap rounded-full bg-navy-900 px-3 py-1.5 text-xs font-bold text-white">
-                    {c.tag}
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-navy-950 text-xs font-bold text-white">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="font-serifDisplay text-[17px] font-semibold text-ink">
                     {c.title}
@@ -279,7 +281,18 @@ function DireitosPage() {
                       <div className="pt-0.5 text-xs font-bold uppercase tracking-wider text-navy-700">
                         {label}
                       </div>
-                      <div className="text-ink-soft">{value}</div>
+                      <div className="text-ink-soft">
+                        {label === "Consequência" && value.startsWith(c.tag) ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-emerald-tint px-3 py-1 text-xs font-bold text-emerald">
+                              {c.tag}
+                            </span>
+                            <span>{value.slice(c.tag.length).trim()}</span>
+                          </div>
+                        ) : (
+                          value
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -330,6 +343,7 @@ function DireitosPage() {
           <div className="mt-8">
             <Link
               to="/"
+              search={{ start: true }}
               className="inline-flex rounded-full bg-gold px-8 py-4 text-[15.5px] font-semibold text-navy-950 no-underline shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5 hover:bg-[oklch(0.8_0.12_82)]"
             >
               Iniciar avaliação gratuita →
