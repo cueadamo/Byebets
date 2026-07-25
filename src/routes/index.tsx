@@ -280,8 +280,6 @@ function QuizPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const step = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -300,7 +298,7 @@ function QuizPage() {
     setAnswers((prev) => ({ ...prev, [id]: value }));
 
   const goNext = () => {
-    if (!canAdvance || submitting) return;
+    if (!canAdvance) return;
     if (stepIndex < totalSteps - 1) {
       setStepIndex((i) => i + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -375,33 +373,21 @@ function QuizPage() {
               ))}
             </div>
 
-            {submitError && (
-              <p className="mt-4 text-center text-sm font-medium text-destructive">
-                {submitError}
-              </p>
-            )}
+
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
               <button
                 onClick={goBack}
-                disabled={stepIndex === 0 || submitting}
+                disabled={stepIndex === 0}
                 className="rounded-full border-[1.5px] border-line bg-transparent px-6 py-3 text-sm font-semibold text-navy-900 transition-all hover:-translate-y-0.5 hover:border-navy-500 hover:bg-tint disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-line disabled:hover:bg-transparent"
               >
                 ← Voltar
               </button>
               <button
                 onClick={goNext}
-                disabled={!canAdvance || submitting}
+                disabled={!canAdvance}
                 className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-transparent bg-blue-electric px-7 py-3 text-sm font-semibold text-white shadow-[var(--shadow-blue)] transition-all hover:-translate-y-0.5 hover:bg-navy-700 hover:shadow-[var(--shadow-elevated)] disabled:cursor-not-allowed disabled:bg-ink-faint disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                {submitting ? (
-                  <>
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    Enviando...
-                  </>
-                ) : stepIndex === totalSteps - 1 ? "Enviar avaliação" : "Continuar →"}
+                {stepIndex === totalSteps - 1 ? "Ver meu resultado →" : "Continuar →"}
               </button>
             </div>
           </div>
