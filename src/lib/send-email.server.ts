@@ -200,3 +200,103 @@ export const submitQuizFn = createServerFn({ method: "POST" })
       return { ok: false, error: "Falha ao enviar e-mail." };
     }
   });
+
+export const submitDetailedFormFn = createServerFn({ method: "POST" })
+  .validator(
+    (data: unknown) =>
+      data as {
+        summaryText: string;
+        clientData: {
+          nome: string;
+          email: string;
+          telefone: string;
+          cidade: string;
+          estado: string;
+          plataforma: string;
+        };
+      }
+  )
+  .handler(async ({ data }) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const emailTo = process.env.EMAIL_TO;
+
+    if (!apiKey || !emailTo) {
+      console.error("Resend: variáveis de ambiente ausentes");
+      return { ok: false, error: "Configuração incompleta no servidor." };
+    }
+
+    const resend = new Resend(apiKey);
+    const { summaryText, clientData } = data;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Inter',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(13,27,62,0.10);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#0B2340 0%,#14335C 100%);padding:32px 40px;text-align:center;">
+            <div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">ByeBets</div>
+            <div style="color:#B98B3E;font-size:12px;margin-top:4px;letter-spacing:2px;text-transform:uppercase;">Formulário do Cliente — Levantamento Aprofundado</div>
+          </td>
+        </tr>
+
+        <!-- Client Info Badge -->
+        <tr>
+          <td style="padding:24px 40px 0;">
+            <div style="background:#F6F3EC;border:1px solid #E4DFD3;border-radius:10px;padding:16px;">
+              <div style="font-size:16px;font-weight:700;color:#0B2340;">${clientData.nome || "Cliente"}</div>
+              <div style="font-size:13px;color:#6B6558;margin-top:4px;">
+                📞 ${clientData.telefone || "Não informado"} | ✉️ ${clientData.email || "Não informado"}
+              </div>
+              <div style="font-size:13px;color:#6B6558;margin-top:2px;">
+                📍 ${clientData.cidade || "-"}/${clientData.estado || "-"} | 🎰 Plataforma: <strong>${clientData.plataforma || "Não informada"}</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Summary text block -->
+        <tr>
+          <td style="padding:20px 40px;">
+            <div style="font-size:13px;font-weight:600;color:#0B2340;margin-bottom:8px;">RESUMO COMPLETO DAS RESPOSTAS:</div>
+            <pre style="background:#f1f5fb;border:1px solid #e2e8f0;border-radius:10px;padding:16px;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.6;color:#1e293b;white-space:pre-wrap;word-break:break-word;">${summaryText}</pre>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:16px 40px 32px;text-align:center;color:#94a3b8;font-size:12px;">
+            Enviado pelo Formulário Aprofundado ByeBets · ${new Date().toLocaleString("pt-BR")}
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    try {
+      const { error } = await resend.emails.send({
+        from: "onboarding@resend.dev",
+        to: [emailTo],
+        subject: `[ByeBets Aprofundado] Form do Cliente — ${clientData.nome || "Cliente"} (${clientData.plataforma || "Bet"})`,
+        html,
+      });
+
+      if (error) {
+        console.error("Resend error:", error);
+        return { ok: false, error: error.message };
+      }
+
+      return { ok: true };
+    } catch (err) {
+      console.error("Erro ao enviar e-mail:", err);
+      return { ok: false, error: "Falha ao enviar e-mail." };
+    }
+  });
