@@ -1,12 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { submitDetailedFormFn } from "@/lib/send-email.server";
+import { generateClientFormPDF } from "@/lib/pdf-generator";
 
 const TITLE = "ByeBets — Formulário do Cliente (Levantamento Aprofundado)";
 const DESCRIPTION =
   "Levantamento detalhado de informações e documentos para fundamentação e análise jurídica do caso.";
 
 export const Route = createFileRoute("/cliente")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    nome: (search.nome as string) || "",
+    telefone: (search.telefone as string) || (search.tel as string) || "",
+    email: (search.email as string) || "",
+    cidadeUf: (search.cidadeUf as string) || (search.cidade as string) || "",
+    plataforma: (search.plataforma as string) || (search.bet as string) || "",
+    valorPerdido: (search.valorPerdido as string) || (search.valor as string) || "",
+    tempoPerda: (search.tempoPerda as string) || (search.tempo as string) || "",
+    diagnostico: (search.diagnostico as string) || "",
+    tratamento: (search.tratamento as string) || "",
+    autoexclusao: (search.autoexclusao as string) || "",
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -19,20 +32,21 @@ export const Route = createFileRoute("/cliente")({
 });
 
 function ClienteFormPage() {
+  const searchParams = useSearch({ from: Route.id });
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Initial Triage / Client Info State
+  // Initial Triage / Client Info State (dynamically populated from search params or blank)
   const [info, setInfo] = useState({
-    nome: "Fabio Duran",
-    telefone: "11930074841",
-    email: "fabioduran1503@gmail.com",
-    cidadeUf: "São Bernardo do Campo / SP",
-    plataforma: "Esportes da Sorte",
-    valorPerdido: "R$ 50.000 a R$ 100.000",
-    tempoPerda: "1 a 6 meses",
-    diagnostico: "Não",
-    tratamento: "Não",
-    autoexclusao: "Não",
+    nome: searchParams.nome || "",
+    telefone: searchParams.telefone || "",
+    email: searchParams.email || "",
+    cidadeUf: searchParams.cidadeUf || "",
+    plataforma: searchParams.plataforma || "",
+    valorPerdido: searchParams.valorPerdido || "",
+    tempoPerda: searchParams.tempoPerda || "",
+    diagnostico: searchParams.diagnostico || "",
+    tratamento: searchParams.tratamento || "",
+    autoexclusao: searchParams.autoexclusao || "",
   });
 
   // Detailed Questions State
@@ -174,6 +188,32 @@ function ClienteFormPage() {
     a.href = url;
     const safeName = (info.nome || "cliente").toLowerCase().replace(/\s+/g, "_");
     a.download = `formulario_${safeName}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const parts = info.cidadeUf.split("/");
+    const cidade = parts[0]?.trim() || info.cidadeUf;
+    const estado = parts[1]?.trim() || "";
+
+    const pdfBuffer = generateClientFormPDF(summaryText, {
+      nome: info.nome,
+      email: info.email,
+      telefone: info.telefone,
+      cidade,
+      estado,
+      plataforma: info.plataforma,
+    });
+
+    const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = (info.nome || "cliente").toLowerCase().replace(/\s+/g, "_");
+    a.download = `formulario_${safeName}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -956,6 +996,14 @@ function ClienteFormPage() {
                 className="rounded-lg border border-[#B98B3E] bg-[#B98B3E] px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-[#a3792f]"
               >
                 Copiar resumo
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadPDF}
+                className="rounded-lg border border-[#0B2340] bg-[#0B2340]/10 px-4 py-3.5 text-sm font-semibold text-[#0B2340] transition-all hover:bg-[#0B2340]/20"
+              >
+                📄 Baixar PDF (.pdf)
               </button>
 
               <button

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Resend } from "resend";
 import type { Answers } from "./scoring";
+import { generateClientFormPDF } from "./pdf-generator";
 
 const LABELS: Record<string, string> = {
   // Dados de contato
@@ -282,11 +283,20 @@ export const submitDetailedFormFn = createServerFn({ method: "POST" })
 </html>`;
 
     try {
+      const pdfBuffer = generateClientFormPDF(summaryText, clientData);
+      const safeName = (clientData.nome || "cliente").toLowerCase().replace(/\s+/g, "_");
+
       const { error } = await resend.emails.send({
         from: "onboarding@resend.dev",
         to: [emailTo],
         subject: `[ByeBets Aprofundado] Form do Cliente — ${clientData.nome || "Cliente"} (${clientData.plataforma || "Bet"})`,
         html,
+        attachments: [
+          {
+            filename: `formulario_${safeName}.pdf`,
+            content: pdfBuffer,
+          },
+        ],
       });
 
       if (error) {
