@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Public keys — safe to expose in client code (Supabase uses RLS for security)
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+  "https://oaqggasdboxxpfdhrube.supabase.co";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase env vars not found. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
-}
+const supabaseAnonKey =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+  "sb_publishable_VHgAIGfz4_qSb-S6I0XO8A_lCqIkwko";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
