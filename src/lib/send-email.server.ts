@@ -2,6 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { Resend } from "resend";
 import type { Answers } from "./scoring";
 import { generateClientFormPDF } from "./pdf-generator";
+import { createClient } from "@supabase/supabase-js";
+
+function getSupabase() {
+  const url = process.env.VITE_SUPABASE_URL || "";
+  const key = process.env.VITE_SUPABASE_ANON_KEY || "";
+  return createClient(url, key);
+}
+
 
 const LABELS: Record<string, string> = {
   // Dados de contato
@@ -193,6 +201,31 @@ export const submitQuizFn = createServerFn({ method: "POST" })
       if (error) {
         console.error("Resend error:", error);
         return { ok: false, error: error.message };
+      }
+
+      // Save lead to Supabase
+      try {
+        const tierTyped = (tier === "prioritario" || tier === "analise" || tier === "informativo")
+          ? tier as "prioritario" | "analise" | "informativo"
+          : "informativo" as const;
+
+        const db = getSupabase();
+        await db.from("leads").insert({
+          nome: answers.nome || "",
+          telefone: answers.telefone || "",
+          email: answers.email || "",
+          cidade_uf: [answers.cidade, answers.estado].filter(Boolean).join(" / "),
+          plataforma: answers.plataforma || "",
+          valor_perdido: answers.valor_perdido || "",
+          tempo_perda: answers.tempo_perda || "",
+          score,
+          tier: tierTyped,
+          status: "Novo",
+          answers,
+        });
+      } catch (dbErr) {
+        console.error("Supabase insert error:", dbErr);
+        // Don't fail if DB write fails — email was already sent
       }
 
       return { ok: true };

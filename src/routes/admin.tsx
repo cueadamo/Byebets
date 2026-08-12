@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { supabase, type Lead } from "@/lib/supabase";
 
 const TITLE = "ByeBets — Painel Administrativo de Leads";
-const DESCRIPTION = "Gestão de leads da triagem e geração de links para formulário aprofundado do cliente.";
+const DESCRIPTION =
+  "Gestão de leads da triagem e geração de links para formulário aprofundado do cliente.";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -14,108 +16,56 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-interface LeadItem {
-  id: string;
-  dataCadastro: string;
-  nome: string;
-  telefone: string;
-  email: string;
-  cidadeUf: string;
-  plataforma: string;
-  valorPerdido: string;
-  tempoPerda: string;
-  score: number;
-  tier: "prioritario" | "analise" | "informativo";
-  status: "Novo" | "Link Enviado" | "Em Análise" | "Concluído";
-}
-
-const INITIAL_DEMO_LEADS: LeadItem[] = [
-  {
-    id: "lead-1",
-    dataCadastro: "12/08/2026 17:30",
-    nome: "Fabio Duran",
-    telefone: "11930074841",
-    email: "fabioduran1503@gmail.com",
-    cidadeUf: "São Bernardo do Campo / SP",
-    plataforma: "Esportes da Sorte",
-    valorPerdido: "R$ 50.000 a R$ 100.000",
-    tempoPerda: "1 a 6 meses",
-    score: 85,
-    tier: "prioritario",
-    status: "Novo",
-  },
-  {
-    id: "lead-2",
-    dataCadastro: "12/08/2026 16:15",
-    nome: "Carlos Eduardo Silva",
-    telefone: "11988887777",
-    email: "carlos.silva@email.com",
-    cidadeUf: "São Paulo / SP",
-    plataforma: "Bet365",
-    valorPerdido: "R$ 20.000 a R$ 50.000",
-    tempoPerda: "6 meses a 1 ano",
-    score: 65,
-    tier: "analise",
-    status: "Link Enviado",
-  },
-  {
-    id: "lead-3",
-    dataCadastro: "12/08/2026 14:00",
-    nome: "Mariana Souza",
-    telefone: "21977776666",
-    email: "mariana.souza@email.com",
-    cidadeUf: "Rio de Janeiro / RJ",
-    plataforma: "Betano",
-    valorPerdido: "R$ 5.000 a R$ 20.000",
-    tempoPerda: "Menos de 30 dias",
-    score: 40,
-    tier: "informativo",
-    status: "Novo",
-  },
-];
-
 function AdminPage() {
   const [pinInput, setPinInput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinError, setPinError] = useState(false);
 
-  const [leads, setLeads] = useState<LeadItem[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("byebets_admin_leads");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
-      }
-    }
-    return INITIAL_DEMO_LEADS;
-  });
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const [searchFilter, setSearchFilter] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("todos");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Modal Novo Lead State
+  // Modal Novo Lead
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({
     nome: "",
     telefone: "",
     email: "",
-    cidadeUf: "",
+    cidade_uf: "",
     plataforma: "",
-    valorPerdido: "R$ 50.000 a R$ 100.000",
-    tempoPerda: "1 a 6 meses",
-    score: 75,
-    tier: "prioritario" as const,
+    valor_perdido: "",
+    tempo_perda: "",
+    score: 50,
+    tier: "analise" as Lead["tier"],
   });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("byebets_admin_leads", JSON.stringify(leads));
+  // Load leads from Supabase
+  const fetchLeads = async () => {
+    setLoading(true);
+    setDbError(null);
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Supabase fetch error:", error);
+      setDbError("Não foi possível carregar os leads. Verifique a conexão com o banco.");
+    } else {
+      setLeads((data as Lead[]) || []);
     }
-  }, [leads]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchLeads();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,71 +77,96 @@ function AdminPage() {
     }
   };
 
-  const handleAddLeadSubmit = (e: React.FormEvent) => {
+  const handleAddLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const created: LeadItem = {
-      id: "lead-" + Date.now(),
-      dataCadastro: new Date().toLocaleString("pt-BR"),
-      nome: newLead.nome,
-      telefone: newLead.telefone,
-      email: newLead.email,
-      cidadeUf: newLead.cidadeUf,
-      plataforma: newLead.plataforma,
-      valorPerdido: newLead.valorPerdido,
-      tempoPerda: newLead.tempoPerda,
-      score: Number(newLead.score) || 50,
-      tier: newLead.tier,
-      status: "Novo",
-    };
+    const { data, error } = await supabase
+      .from("leads")
+      .insert({
+        nome: newLead.nome,
+        telefone: newLead.telefone,
+        email: newLead.email,
+        cidade_uf: newLead.cidade_uf,
+        plataforma: newLead.plataforma,
+        valor_perdido: newLead.valor_perdido,
+        tempo_perda: newLead.tempo_perda,
+        score: Number(newLead.score) || 50,
+        tier: newLead.tier,
+        status: "Novo",
+        answers: {},
+      })
+      .select()
+      .single();
 
-    setLeads([created, ...leads]);
+    if (error) {
+      alert("Erro ao salvar cliente: " + error.message);
+      return;
+    }
+
+    if (data) {
+      setLeads([data as Lead, ...leads]);
+    }
+
     setIsAddingLead(false);
     setNewLead({
       nome: "",
       telefone: "",
       email: "",
-      cidadeUf: "",
+      cidade_uf: "",
       plataforma: "",
-      valorPerdido: "R$ 50.000 a R$ 100.000",
-      tempoPerda: "1 a 6 meses",
-      score: 75,
-      tier: "prioritario",
+      valor_perdido: "",
+      tempo_perda: "",
+      score: 50,
+      tier: "analise",
     });
   };
 
-  const generateDeepFormUrl = (lead: LeadItem) => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://byebets.vercel.app";
+  const generateDeepFormUrl = (lead: Lead) => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "https://byebets.vercel.app";
     const params = new URLSearchParams({
       nome: lead.nome,
       tel: lead.telefone,
       email: lead.email,
-      cidade: lead.cidadeUf,
+      cidade: lead.cidade_uf,
       plataforma: lead.plataforma,
-      valor: lead.valorPerdido,
-      tempo: lead.tempoPerda,
+      valor: lead.valor_perdido,
+      tempo: lead.tempo_perda,
     });
     return `${origin}/cliente?${params.toString()}`;
   };
 
-  const handleCopyLink = (lead: LeadItem) => {
+  const handleCopyLink = (lead: Lead) => {
     const url = generateDeepFormUrl(lead);
     navigator.clipboard.writeText(url).then(() => {
-      setCopiedId(lead.id);
+      setCopiedId(lead.id!);
       setTimeout(() => setCopiedId(null), 3000);
+      updateLeadStatus(lead, "Link Enviado");
     });
   };
 
-  const handleOpenWhatsApp = (lead: LeadItem) => {
+  const handleOpenWhatsApp = (lead: Lead) => {
     const url = generateDeepFormUrl(lead);
     const cleanPhone = lead.telefone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
     const msg = `Olá, ${lead.nome}! Para darmos sequência à análise do seu caso sobre as perdas na plataforma ${lead.plataforma}, por favor preencha o formulário aprofundado no link abaixo:\n\n${url}`;
-    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, "_blank");
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+    updateLeadStatus(lead, "Link Enviado");
   };
 
-  const updateLeadStatus = (id: string, status: LeadItem["status"]) => {
-    setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
+  const updateLeadStatus = async (lead: Lead, status: Lead["status"]) => {
+    // Optimistic update
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, status } : l)));
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ status })
+      .eq("id", lead.id!);
+
+    if (error) {
+      console.error("Failed to update status:", error);
+      // Revert on failure
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, status: lead.status } : l)));
+    }
   };
 
   const filteredLeads = useMemo(() => {
@@ -209,13 +184,32 @@ function AdminPage() {
     });
   }, [leads, searchFilter, tierFilter]);
 
-  // LOGIN SCREEN
+  const tierLabel = (tier: Lead["tier"]) => {
+    if (tier === "prioritario") return "🔴 Prioritário";
+    if (tier === "analise") return "🟡 Em Análise";
+    return "🟢 Informativo";
+  };
+
+  const tierBg = (tier: Lead["tier"]) => {
+    if (tier === "prioritario") return "bg-red-100 text-red-700";
+    if (tier === "analise") return "bg-amber-100 text-amber-800";
+    return "bg-emerald-100 text-emerald-700";
+  };
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return "-";
+    return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  };
+
+  // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0B2340] px-6 py-12 text-white">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-md shadow-2xl">
           <div className="text-center">
-            <img src="/logo.png" alt="ByeBets" className="mx-auto h-12 w-auto brightness-0 invert" />
+            <Link to="/" className="inline-block">
+              <img src="/logo.png" alt="ByeBets" className="mx-auto h-12 w-auto brightness-0 invert" />
+            </Link>
             <h1 className="mt-4 font-serifDisplay text-2xl font-semibold">Painel Administrativo</h1>
             <p className="mt-1 text-xs text-white/70">
               Digite a senha de acesso para visualizar a gestão de clientes.
@@ -225,12 +219,12 @@ function AdminPage() {
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-[#B98B3E]">
-                Senha de Acesso PIN
+                Senha de acesso
               </label>
               <input
                 type="password"
                 required
-                placeholder="Senha (padrão: 1234)"
+                placeholder="••••••••"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-white/20 bg-black/20 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-[#B98B3E] focus:outline-none"
@@ -250,19 +244,15 @@ function AdminPage() {
               Acessar Painel →
             </button>
           </form>
-
-          <p className="mt-6 text-center text-[11px] text-white/40">
-            Dica: a senha padrão de demonstração é <strong className="text-white/80">1234</strong>.
-          </p>
         </div>
       </div>
     );
   }
 
-  // ADMIN DASHBOARD SCREEN
+  // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#1E293B]">
-      {/* Header Bar */}
+      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#E2E8F0] bg-[#0B2340] px-6 py-4 text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
@@ -275,6 +265,13 @@ function AdminPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={fetchLeads}
+              disabled={loading}
+              className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white hover:bg-white/10 disabled:opacity-50"
+            >
+              {loading ? "Carregando..." : "⟳ Atualizar"}
+            </button>
             <button
               onClick={() => setIsAddingLead(true)}
               className="rounded-full bg-[#B98B3E] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#a3792f]"
@@ -291,138 +288,136 @@ function AdminPage() {
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-serifDisplay text-2xl font-semibold text-[#0B2340] sm:text-3xl">
-              Gestão de Clientes e Links
+              Gestão de Clientes
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-[#64748B]">
-              Selecione o cliente para copiar o link exclusivo do formulário aprofundado ou enviar diretamente pelo WhatsApp.
+              Todos os leads que preencheram a triagem gratuita. Clique em "WhatsApp" para enviar o
+              link do formulário aprofundado diretamente.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Stats */}
+          <div className="flex flex-wrap gap-3">
             <span className="rounded-full bg-[#0B2340]/10 px-3 py-1.5 text-xs font-bold text-[#0B2340]">
-              Total: {leads.length} clientes
+              Total: {leads.length}
+            </span>
+            <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700">
+              🔴 {leads.filter((l) => l.tier === "prioritario").length} Prioritários
+            </span>
+            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
+              🟡 {leads.filter((l) => l.tier === "analise").length} Em Análise
             </span>
           </div>
         </div>
 
-        {/* Filters Bar */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
-          <div className="flex flex-1 items-center gap-3 min-w-[240px]">
-            <span className="text-xs text-[#64748B]">🔍</span>
-            <input
-              type="text"
-              placeholder="Buscar por nome, telefone, e-mail ou bet..."
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="w-full text-sm text-[#1E293B] focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#64748B]">Classificação:</span>
-            <select
-              value={tierFilter}
-              onChange={(e) => setTierFilter(e.target.value)}
-              className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-medium text-[#1E293B] focus:outline-none"
-            >
-              <option value="todos">Todas</option>
-              <option value="prioritario">🔴 Prioritário</option>
-              <option value="analise">🟡 Em Análise</option>
-              <option value="informativo">🟢 Informativo</option>
-            </select>
-          </div>
+        {/* Filters */}
+        <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+          <input
+            type="text"
+            placeholder="🔍  Buscar por nome, telefone, e-mail ou plataforma..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="flex-1 min-w-[240px] text-sm text-[#1E293B] focus:outline-none"
+          />
+          <select
+            value={tierFilter}
+            onChange={(e) => setTierFilter(e.target.value)}
+            className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-medium text-[#1E293B] focus:outline-none"
+          >
+            <option value="todos">Todas as classificações</option>
+            <option value="prioritario">🔴 Prioritário</option>
+            <option value="analise">🟡 Em Análise</option>
+            <option value="informativo">🟢 Informativo</option>
+          </select>
         </div>
 
-        {/* Leads Table */}
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-              <tr>
-                <th className="px-5 py-4">Cliente</th>
-                <th className="px-5 py-4">Contato / Local</th>
-                <th className="px-5 py-4">Plataforma & Perda</th>
-                <th className="px-5 py-4">Classificação</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4 text-right">Ações p/ Formulário</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E2E8F0]">
-              {filteredLeads.map((lead) => {
-                const isPrioritario = lead.tier === "prioritario";
-                const isAnalise = lead.tier === "analise";
+        {/* Error State */}
+        {dbError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            ⚠️ {dbError}
+          </div>
+        )}
 
-                return (
+        {/* Table */}
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+          {loading && leads.length === 0 ? (
+            <div className="py-16 text-center text-sm text-[#94A3B8]">
+              Carregando clientes do banco de dados…
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-lg font-serifDisplay text-[#0B2340]">Nenhum cliente encontrado</p>
+              <p className="mt-1 text-sm text-[#94A3B8]">
+                {leads.length === 0
+                  ? "Os clientes que preencherem a triagem aparecerão aqui automaticamente."
+                  : "Tente ajustar os filtros de busca."}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                <tr>
+                  <th className="px-5 py-4">Cliente</th>
+                  <th className="px-5 py-4">Contato</th>
+                  <th className="px-5 py-4">Plataforma & Perda</th>
+                  <th className="px-5 py-4">Classificação</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E2E8F0]">
+                {filteredLeads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-[#F8FAFC]/80 transition-colors">
                     <td className="px-5 py-4">
                       <div className="font-semibold text-[#0B2340] text-sm">{lead.nome}</div>
-                      <div className="text-[11px] text-[#94A3B8]">{lead.dataCadastro}</div>
+                      <div className="text-[11px] text-[#94A3B8]">{formatDate(lead.created_at)}</div>
+                      <div className="text-[11px] text-[#94A3B8]">{lead.cidade_uf}</div>
                     </td>
 
                     <td className="px-5 py-4">
                       <div className="text-[#334155] font-medium">{lead.telefone}</div>
                       <div className="text-[#64748B] text-xs">{lead.email}</div>
-                      <div className="text-[#94A3B8] text-[11px]">{lead.cidadeUf}</div>
                     </td>
 
                     <td className="px-5 py-4">
                       <div className="font-semibold text-[#0B2340]">{lead.plataforma}</div>
-                      <div className="text-xs text-[#64748B]">{lead.valorPerdido}</div>
-                      <div className="text-[11px] text-[#94A3B8]">Tempo: {lead.tempoPerda}</div>
+                      <div className="text-xs text-[#64748B]">{lead.valor_perdido}</div>
+                      <div className="text-[11px] text-[#94A3B8]">{lead.tempo_perda}</div>
                     </td>
 
                     <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
-                          isPrioritario
-                            ? "bg-red-100 text-red-700"
-                            : isAnalise
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-700"
-                        }`}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full fill-current" />
-                        {isPrioritario ? "Prioritário" : isAnalise ? "Em Análise" : "Informativo"}{" "}
-                        ({lead.score} pts)
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${tierBg(lead.tier)}`}>
+                        {tierLabel(lead.tier)} ({lead.score} pts)
                       </span>
                     </td>
 
                     <td className="px-5 py-4">
                       <select
                         value={lead.status}
-                        onChange={(e) =>
-                          updateLeadStatus(lead.id, e.target.value as LeadItem["status"])
-                        }
+                        onChange={(e) => updateLeadStatus(lead, e.target.value as Lead["status"])}
                         className="rounded-md border border-[#CBD5E1] bg-white px-2 py-1 text-xs font-medium text-[#334155]"
                       >
-                        <option value="Novo">Novo</option>
-                        <option value="Link Enviado">Link Enviado</option>
-                        <option value="Em Análise">Em Análise</option>
-                        <option value="Concluído">Concluído</option>
+                        <option>Novo</option>
+                        <option>Link Enviado</option>
+                        <option>Em Análise</option>
+                        <option>Concluído</option>
                       </select>
                     </td>
 
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => {
-                            handleCopyLink(lead);
-                            updateLeadStatus(lead.id, "Link Enviado");
-                          }}
+                          onClick={() => handleCopyLink(lead)}
                           className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#0B2340] shadow-sm hover:bg-[#F1F5F9]"
                         >
                           {copiedId === lead.id ? "✓ Copiado!" : "🔗 Copiar Link"}
                         </button>
-
                         <button
-                          onClick={() => {
-                            handleOpenWhatsApp(lead);
-                            updateLeadStatus(lead.id, "Link Enviado");
-                          }}
+                          onClick={() => handleOpenWhatsApp(lead)}
                           className="rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#20bd5a]"
                         >
                           💬 WhatsApp
@@ -430,24 +425,16 @@ function AdminPage() {
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-
-              {filteredLeads.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-[#94A3B8]">
-                    Nenhum cliente encontrado com os filtros selecionados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </main>
 
       {/* Modal Add Lead */}
       {isAddingLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <h3 className="font-serifDisplay text-xl font-semibold text-[#0B2340]">
               Cadastrar Novo Cliente
@@ -500,8 +487,8 @@ function AdminPage() {
                   <input
                     type="text"
                     placeholder="Cidade / SP"
-                    value={newLead.cidadeUf}
-                    onChange={(e) => setNewLead({ ...newLead, cidadeUf: e.target.value })}
+                    value={newLead.cidade_uf}
+                    onChange={(e) => setNewLead({ ...newLead, cidade_uf: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-[#CBD5E1] p-2.5 text-xs focus:outline-none focus:border-[#0B2340]"
                   />
                 </div>
@@ -520,12 +507,12 @@ function AdminPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#0B2340]">Faixa de Perda</label>
+                  <label className="block text-xs font-bold text-[#0B2340]">Faixa de perda</label>
                   <input
                     type="text"
                     placeholder="ex: R$ 50.000 a R$ 100.000"
-                    value={newLead.valorPerdido}
-                    onChange={(e) => setNewLead({ ...newLead, valorPerdido: e.target.value })}
+                    value={newLead.valor_perdido}
+                    onChange={(e) => setNewLead({ ...newLead, valor_perdido: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-[#CBD5E1] p-2.5 text-xs focus:outline-none focus:border-[#0B2340]"
                   />
                 </div>
@@ -533,9 +520,7 @@ function AdminPage() {
                   <label className="block text-xs font-bold text-[#0B2340]">Classificação</label>
                   <select
                     value={newLead.tier}
-                    onChange={(e) =>
-                      setNewLead({ ...newLead, tier: e.target.value as LeadItem["tier"] })
-                    }
+                    onChange={(e) => setNewLead({ ...newLead, tier: e.target.value as Lead["tier"] })}
                     className="mt-1 w-full rounded-lg border border-[#CBD5E1] p-2.5 text-xs focus:outline-none focus:border-[#0B2340]"
                   >
                     <option value="prioritario">🔴 Prioritário</option>
