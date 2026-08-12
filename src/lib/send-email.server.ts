@@ -3,13 +3,47 @@ import { Resend } from "resend";
 import type { Answers } from "./scoring";
 
 const LABELS: Record<string, string> = {
+  // Dados de contato
+  nome: "Nome completo",
+  telefone: "Telefone / WhatsApp",
+  cidade: "Cidade",
+  estado: "Estado (UF)",
+  email: "E-mail",
+
+  // Etapa 1: Identificação do problema
   perdeu_dinheiro: "Perdeu dinheiro em apostas?",
   plataforma: "Plataforma utilizada",
   valor_perdido: "Valor aproximado perdido",
   tempo_perda: "Tempo de perda",
-  diagnostico: "Diagnóstico de ludopatia?",
-  tratamento: "Em tratamento?",
-  autoexclusao: "Pediu autoexclusão?",
+
+  // Etapa 2: Indícios de ludopatia
+  dificuldade_parar: "Dificuldade em parar de apostar",
+  apostava_sem_querer: "Apostava mesmo sem querer",
+  emprestimos: "Usou empréstimos / cartão de crédito",
+  vendeu_bem: "Vendeu bens para apostar",
+  vida_financeira: "Vida financeira prejudicada",
+  relacionamento: "Relacionamento familiar afetado",
+
+  // Etapa 3: Histórico médico
+  diagnostico: "Diagnóstico de ludopatia",
+  tratamento: "Tratamento psicológico/psiquiátrico",
+  laudo: "Possui laudo/relatório médico",
+
+  // Etapa 4: Provas e documentação
+  extratos: "Possui extratos bancários",
+  historico_apostas: "Possui histórico de apostas",
+  pix: "Possui comprovantes PIX",
+  prints: "Possui prints da plataforma",
+
+  // Etapa 5: Situação atual
+  conta_ativa: "Conta ainda ativa na plataforma",
+  autoexclusao: "Solicitou autoexclusão",
+  promocoes: "Envio de promoções após pedir p/ parar",
+
+  // Etapa 6: Seu objetivo
+  objetivo: "Objetivo do cliente",
+
+  // Fallbacks Legados
   autoexclusao_ignorada: "Pedido ignorado?",
   menores: "Envolvimento de menores?",
   publicidade_enganosa: "Publicidade enganosa?",
@@ -21,11 +55,6 @@ const LABELS: Record<string, string> = {
   documentacao: "Documentação disponível?",
   advogado: "Já procurou advogado?",
   urgencia: "Urgência do caso",
-  nome: "Nome completo",
-  telefone: "Telefone / WhatsApp",
-  cidade: "Cidade",
-  estado: "Estado (UF)",
-  email: "E-mail",
 };
 
 const VALUE_LABELS: Record<string, string> = {
@@ -40,9 +69,20 @@ const VALUE_LABELS: Record<string, string> = {
   "1_6m": "1 a 6 meses",
   "6m_1a": "6 meses a 1 ano",
   mais_1a: "Mais de 1 ano",
+  frequentemente: "Frequentemente",
+  as_vezes: "Às vezes",
+  nunca: "Nunca",
+  muito: "Muito",
+  um_pouco: "Um pouco",
+  andamento: "Em andamento",
+  parcialmente: "Parcialmente",
   nao_sei: "Não sei",
+  recuperar: "Recuperar parte dos valores",
+  entender: "Entender meus direitos",
+  avaliacao: "Avaliação jurídica",
+  psicologica: "Ajuda psicológica",
+  ambos: "Ambos",
   talvez: "Talvez",
-  em_andamento: "Em andamento",
   sim_documentado: "Sim, documentado",
   sim_nao_documentado: "Sim, sem documentação formal",
   extratos: "Apenas extratos bancários/PIX",
@@ -78,10 +118,12 @@ export const submitQuizFn = createServerFn({ method: "POST" })
       informativo: "🟢 INFORMATIVO",
     };
 
-    const rows = Object.entries(LABELS)
-      .map(([key, label]) => {
+    const allKeys = Array.from(new Set([...Object.keys(LABELS), ...Object.keys(answers)]));
+    const rows = allKeys
+      .map((key) => {
         const val = answers[key];
         if (!val) return "";
+        const label = LABELS[key] ?? key;
         return `
           <tr>
             <td style="padding:8px 12px;background:#f1f5fb;color:#334155;font-size:13px;font-weight:600;width:40%;border-bottom:1px solid #e2e8f0;">${label}</td>
