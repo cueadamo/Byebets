@@ -5,8 +5,13 @@ import { generateClientFormPDF } from "./pdf-generator";
 import { createClient } from "@supabase/supabase-js";
 
 function getSupabase() {
-  const url = process.env.VITE_SUPABASE_URL || "";
-  const key = process.env.VITE_SUPABASE_ANON_KEY || "";
+  // Public keys — safe to hardcode (security enforced by RLS in Supabase)
+  const url =
+    process.env.VITE_SUPABASE_URL ||
+    "https://oaqggasdboxxpfdhrube.supabase.co";
+  const key =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    "sb_publishable_VHgAIGfz4_qSb-S6I0XO8A_lCqIkwko";
   return createClient(url, key);
 }
 
