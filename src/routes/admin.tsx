@@ -123,6 +123,7 @@ function AdminPage() {
   const generateDeepFormUrl = (lead: Lead) => {
     const origin =
       typeof window !== "undefined" ? window.location.origin : "https://byebets.vercel.app";
+    const answers = (lead.answers as Record<string, string>) || {};
     const params = new URLSearchParams({
       nome: lead.nome,
       tel: lead.telefone,
@@ -131,6 +132,10 @@ function AdminPage() {
       plataforma: lead.plataforma,
       valor: lead.valor_perdido,
       tempo: lead.tempo_perda,
+      // Campos extras da triagem
+      diagnostico: answers.diagnostico || "",
+      tratamento: answers.tratamento || "",
+      autoexclusao: answers.autoexclusao || "",
     });
     return `${origin}/cliente?${params.toString()}`;
   };
