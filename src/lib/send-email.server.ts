@@ -245,6 +245,7 @@ export const submitDetailedFormFn = createServerFn({ method: "POST" })
     (data: unknown) =>
       data as {
         summaryText: string;
+        formData?: Record<string, unknown>;
         clientData: {
           nome: string;
           email: string;
@@ -256,16 +257,11 @@ export const submitDetailedFormFn = createServerFn({ method: "POST" })
       }
   )
   .handler(async ({ data }) => {
-    const apiKey = process.env.RESEND_API_KEY;
-    const emailTo = process.env.EMAIL_TO;
-
-    if (!apiKey || !emailTo) {
-      console.error("Resend: variáveis de ambiente ausentes");
-      return { ok: false, error: "Configuração incompleta no servidor." };
-    }
+    const apiKey = process.env.RESEND_API_KEY || "";
+    const emailTo = process.env.EMAIL_TO || "";
 
     const resend = new Resend(apiKey);
-    const { summaryText, clientData } = data;
+    const { summaryText, clientData, formData } = data;
 
     const html = `
 <!DOCTYPE html>
@@ -339,7 +335,23 @@ export const submitDetailedFormFn = createServerFn({ method: "POST" })
 
       if (error) {
         console.error("Resend error:", error);
-        return { ok: false, error: error.message };
+        // Don't fail — still try to save to DB
+      }
+
+      // Save to Supabase detailed_forms
+      try {
+        const db = getSupabase();
+        await db.from("detailed_forms").insert({
+          nome: clientData.nome || "",
+          email: clientData.email || "",
+          telefone: clientData.telefone || "",
+          cidade_uf: [clientData.cidade, clientData.estado].filter(Boolean).join(" / "),
+          plataforma: clientData.plataforma || "",
+          summary_text: summaryText,
+          form_data: formData || {},
+        });
+      } catch (dbErr) {
+        console.error("Supabase detailed_forms insert error:", dbErr);
       }
 
       return { ok: true };
@@ -348,3 +360,4 @@ export const submitDetailedFormFn = createServerFn({ method: "POST" })
       return { ok: false, error: "Falha ao enviar e-mail." };
     }
   });
+

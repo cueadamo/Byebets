@@ -2,6 +2,7 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { submitDetailedFormFn } from "@/lib/send-email.server";
 import { generateClientFormPDF } from "@/lib/pdf-generator";
+import { Logo } from "@/components/Logo";
 
 const TITLE = "ByeBets — Formulário do Cliente (Levantamento Aprofundado)";
 const DESCRIPTION =
@@ -233,6 +234,14 @@ function ClienteFormPage() {
       const res = await submitDetailedFormFn({
         data: {
           summaryText,
+          formData: {
+            info,
+            q1, q2a, q2b, q3Radio, q3Note,
+            q4a, q4b, q4c, q5, q6, q7, q8, q9,
+            q10Opts, q10Note, q11, q12, q13, q14,
+            q15, q16, q17Opts, q18Opts, q19Radio,
+            q20Radio, q21Opts, qCpf, qEnd,
+          },
           clientData: {
             nome: info.nome,
             email: info.email,
@@ -268,11 +277,7 @@ function ClienteFormPage() {
         <div className="mx-auto max-w-2xl px-6 py-5">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center no-underline">
-              <img
-                src="/logo.png"
-                alt="ByeBets"
-                className="h-10 w-auto brightness-0 invert"
-              />
+              <Logo variant="light" className="h-10 w-auto" />
             </Link>
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#B98B3E]">
               Formulário do Cliente

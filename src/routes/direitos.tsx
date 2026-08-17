@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Logo } from "@/components/Logo";
 
 const TITLE = "ByeBets — Responsabilidade Civil das Bets";
 const DESCRIPTION =
@@ -149,11 +150,7 @@ function DireitosPage() {
       <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.92)] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <Link to="/" className="flex items-center no-underline">
-            <img
-              src="/logo.png"
-              alt="ByeBets — Escolhas hoje. Liberdade sempre."
-              className="h-14 w-auto"
-            />
+            <Logo variant="dark" className="h-12 w-auto" />
           </Link>
           <Link
             to="/"

@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
-import { supabase, type Lead } from "@/lib/supabase";
+import { supabase, type Lead, type DetailedForm } from "@/lib/supabase";
+import { generateClientFormPDF } from "@/lib/pdf-generator";
+import { Logo } from "@/components/Logo";
 
 const TITLE = "ByeBets — Painel Administrativo de Leads";
 const DESCRIPTION =
@@ -21,9 +23,14 @@ function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinError, setPinError] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"leads" | "forms">("leads");
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+
+  const [detailedForms, setDetailedForms] = useState<DetailedForm[]>([]);
+  const [formsLoading, setFormsLoading] = useState(false);
 
   const [searchFilter, setSearchFilter] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("todos");
@@ -61,9 +68,25 @@ function AdminPage() {
     setLoading(false);
   };
 
+  const fetchDetailedForms = async () => {
+    setFormsLoading(true);
+    const { data, error } = await supabase
+      .from("detailed_forms")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Supabase detailed_forms fetch error:", error);
+    } else {
+      setDetailedForms((data as DetailedForm[]) || []);
+    }
+    setFormsLoading(false);
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchLeads();
+      fetchDetailedForms();
     }
   }, [isAuthenticated]);
 
@@ -213,7 +236,7 @@ function AdminPage() {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-md shadow-2xl">
           <div className="text-center">
             <Link to="/" className="inline-block">
-              <img src="/logo.png" alt="ByeBets" className="mx-auto h-12 w-auto brightness-0 invert" />
+              <Logo variant="light" className="mx-auto h-12 w-auto" />
             </Link>
             <h1 className="mt-4 font-serifDisplay text-2xl font-semibold">Painel Administrativo</h1>
             <p className="mt-1 text-xs text-white/70">
@@ -262,7 +285,7 @@ function AdminPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center">
-              <img src="/logo.png" alt="ByeBets" className="h-10 w-auto brightness-0 invert" />
+              <Logo variant="light" className="h-10 w-auto" />
             </Link>
             <span className="hidden rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-[#B98B3E] sm:inline-block">
               Portal da Equipe Jurídica
@@ -297,55 +320,88 @@ function AdminPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-serifDisplay text-2xl font-semibold text-[#0B2340] sm:text-3xl">
-              Gestão de Clientes
+              {activeTab === "leads" ? "Gestão de Clientes" : "Formulários Aprofundados"}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-[#64748B]">
-              Todos os leads que preencheram a triagem gratuita. Clique em "WhatsApp" para enviar o
-              link do formulário aprofundado diretamente.
+              {activeTab === "leads"
+                ? "Leads da triagem gratuita. Clique em \"WhatsApp\" para enviar o link do formulário aprofundado."
+                : "Clientes que preencheram o formulário completo. Gere o PDF para cada um."}
             </p>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-3">
             <span className="rounded-full bg-[#0B2340]/10 px-3 py-1.5 text-xs font-bold text-[#0B2340]">
-              Total: {leads.length}
+              {activeTab === "leads" ? `Total: ${leads.length}` : `Formulários: ${detailedForms.length}`}
             </span>
-            <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700">
-              🔴 {leads.filter((l) => l.tier === "prioritario").length} Prioritários
-            </span>
-            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
-              🟡 {leads.filter((l) => l.tier === "analise").length} Em Análise
-            </span>
+            {activeTab === "leads" && (
+              <>
+                <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700">
+                  🔴 {leads.filter((l) => l.tier === "prioritario").length} Prioritários
+                </span>
+                <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
+                  🟡 {leads.filter((l) => l.tier === "analise").length} Em Análise
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
-          <input
-            type="text"
-            placeholder="🔍  Buscar por nome, telefone, e-mail ou plataforma..."
-            value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-            className="flex-1 min-w-[240px] text-sm text-[#1E293B] focus:outline-none"
-          />
-          <select
-            value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
-            className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-medium text-[#1E293B] focus:outline-none"
+        {/* Tab Navigation */}
+        <div className="mt-6 flex gap-1 rounded-xl bg-[#E2E8F0] p-1 w-fit">
+          <button
+            onClick={() => setActiveTab("leads")}
+            className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
+              activeTab === "leads"
+                ? "bg-white text-[#0B2340] shadow-sm"
+                : "text-[#64748B] hover:text-[#0B2340]"
+            }`}
           >
-            <option value="todos">Todas as classificações</option>
-            <option value="prioritario">🔴 Prioritário</option>
-            <option value="analise">🟡 Em Análise</option>
-            <option value="informativo">🟢 Informativo</option>
-          </select>
+            👥 Triagem ({leads.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("forms")}
+            className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
+              activeTab === "forms"
+                ? "bg-white text-[#0B2340] shadow-sm"
+                : "text-[#64748B] hover:text-[#0B2340]"
+            }`}
+          >
+            📋 Formulários ({detailedForms.length})
+          </button>
         </div>
 
-        {/* Error State */}
-        {dbError && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            ⚠️ {dbError}
-          </div>
-        )}
+        {/* ── TAB: LEADS ── */}
+        {activeTab === "leads" && (
+          <>
+            {/* Filters */}
+            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+              <input
+                type="text"
+                placeholder="🔍  Buscar por nome, telefone, e-mail ou plataforma..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="flex-1 min-w-[240px] text-sm text-[#1E293B] focus:outline-none"
+              />
+              <select
+                value={tierFilter}
+                onChange={(e) => setTierFilter(e.target.value)}
+                className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-medium text-[#1E293B] focus:outline-none"
+              >
+                <option value="todos">Todas as classificações</option>
+                <option value="prioritario">🔴 Prioritário</option>
+                <option value="analise">🟡 Em Análise</option>
+                <option value="informativo">🟢 Informativo</option>
+              </select>
+            </div>
+
+            {/* Error State */}
+            {dbError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                ⚠️ {dbError}
+              </div>
+            )}
+
 
         {/* Table */}
         <div className="mt-6 overflow-x-auto rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
@@ -435,6 +491,103 @@ function AdminPage() {
             </table>
           )}
         </div>
+          </>
+        )}
+
+        {/* ── TAB: FORMULÁRIOS APROFUNDADOS ── */}
+        {activeTab === "forms" && (
+          <div className="mt-4">
+            {formsLoading ? (
+              <div className="py-16 text-center text-sm text-[#94A3B8]">
+                Carregando formulários do banco de dados…
+              </div>
+            ) : detailedForms.length === 0 ? (
+              <div className="py-16 text-center rounded-2xl border border-[#E2E8F0] bg-white">
+                <p className="text-lg font-serifDisplay text-[#0B2340]">Nenhum formulário preenchido ainda</p>
+                <p className="mt-1 text-sm text-[#94A3B8]">
+                  Os formulários aprofundados preenchidos pelos clientes aparecerão aqui.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {detailedForms.map((form) => (
+                  <div
+                    key={form.id}
+                    className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0B2340]/10 text-sm font-bold text-[#0B2340]">
+                            {(form.nome || "?")[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[#0B2340]">{form.nome || "—"}</div>
+                            <div className="text-xs text-[#64748B]">
+                              {form.telefone} · {form.email}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 font-medium text-[#334155]">
+                            🎰 {form.plataforma || "—"}
+                          </span>
+                          <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 font-medium text-[#334155]">
+                            📍 {form.cidade_uf || "—"}
+                          </span>
+                          <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 font-medium text-[#334155]">
+                            🕐 {formatDate(form.created_at)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const parts = (form.cidade_uf || "").split("/");
+                            const pdfBuffer = generateClientFormPDF(form.summary_text || "", {
+                              nome: form.nome || "",
+                              email: form.email || "",
+                              telefone: form.telefone || "",
+                              cidade: parts[0]?.trim() || "",
+                              estado: parts[1]?.trim() || "",
+                              plataforma: form.plataforma || "",
+                            });
+                            const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `formulario_${(form.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="rounded-lg bg-[#0B2340] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#14335C] flex items-center gap-1.5"
+                        >
+                          📄 Gerar PDF
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Summary Preview */}
+                    {form.summary_text && (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-[#64748B] hover:text-[#0B2340]">
+                          Ver resumo das respostas ▾
+                        </summary>
+                        <pre className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-[#F8FAFC] p-3 text-[10px] leading-relaxed text-[#334155] whitespace-pre-wrap">
+                          {form.summary_text}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
 
       {/* Modal Add Lead */}

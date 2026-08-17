@@ -2,6 +2,7 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { computeScore, type Answers } from "@/lib/scoring";
 import { submitQuizFn } from "@/lib/send-email.server";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -320,11 +321,7 @@ function QuizPage() {
       <header className="sticky top-0 z-40 border-b border-line bg-[rgba(255,255,255,0.92)] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <a href="/" className="flex items-center no-underline">
-            <img
-              src="/logo.png"
-              alt="ByeBets — Escolhas hoje. Liberdade sempre."
-              className="h-14 w-auto"
-            />
+            <Logo variant="dark" className="h-12 w-auto" />
           </a>
           <div className="hidden text-xs font-semibold uppercase tracking-wider text-ink-soft sm:flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-electric" />
