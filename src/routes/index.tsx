@@ -405,9 +405,6 @@ function QuizPage() {
           </p>
           <div className="pt-2 flex flex-wrap justify-between items-center gap-2 text-xs border-t border-line/60 text-ink-faint">
             <span>© ByeBets · Proteção e Responsabilidade Civil</span>
-            <Link to="/cliente" className="text-blue-electric font-medium hover:underline">
-              Formulário do Cliente (Aprofundado) →
-            </Link>
           </div>
         </div>
       </footer>
@@ -833,12 +830,6 @@ function ThankYou({ answers }: { answers: Answers }) {
           </ul>
 
           <div className="mt-8 flex flex-wrap gap-3 border-t border-line pt-6">
-            <Link
-              to="/cliente"
-              className="rounded-full bg-navy-900 px-6 py-3 text-sm font-semibold text-white no-underline shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5 hover:bg-navy-950"
-            >
-              Preencher Levantamento Aprofundado (Formulário do Cliente) →
-            </Link>
             <Link
               to="/direitos"
               className="rounded-full border-[1.5px] border-line bg-white px-6 py-3 text-sm font-semibold text-navy-900 no-underline transition-all hover:-translate-y-0.5 hover:border-blue-electric hover:bg-tint"
